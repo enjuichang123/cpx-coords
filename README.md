@@ -39,8 +39,8 @@ This library uses the following coordinate representations for complex numbers:
 
 This project is licensed under either of
 
-- [MIT license](LICENSE-MIT)
-- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT license](LICENSE-MIT.txt)
+- [Apache License, Version 2.0](LICENSE-APACHE.txt)
 
 at your option.
 

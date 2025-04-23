@@ -1,0 +1,63 @@
+{
+  "files": {
+    "children": [
+      {
+        "name": ".",
+        "type": "directory",
+        "license": {
+          "spdx": "MIT OR Apache-2.0",
+          "copyright": [
+            "2025 En-Jui Chang"
+          ]
+        },
+        "children": [
+          {
+            "name": "src",
+            "type": "directory",
+            "license": {
+              "spdx": "MIT OR Apache-2.0"
+            },
+            "children": [
+              {
+                "name": "lib.rs",
+                "type": "file",
+                "license": {
+                  "spdx": "MIT OR Apache-2.0"
+                }
+              },
+              {
+                "name": "main.rs",
+                "type": "file",
+                "license": {
+                  "spdx": "MIT OR Apache-2.0"
+                }
+              }
+            ]
+          },
+          {
+            "name": "LICENSE-MIT",
+            "type": "file",
+            "license": {
+              "spdx": "MIT"
+            }
+          },
+          {
+            "name": "LICENSE-APACHE",
+            "type": "file",
+            "license": {
+              "spdx": "Apache-2.0"
+            }
+          },
+          {
+            "name": "Cargo.toml",
+            "type": "file",
+            "license": {
+              "spdx": "MIT OR Apache-2.0"
+            }
+          }
+        ]
+      }
+    ],
+    "type": "root"
+  }
+}

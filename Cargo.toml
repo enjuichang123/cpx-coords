@@ -1,12 +1,12 @@
 [package]
 authors = ["En-Jui Chang"]
 name = "cpx-coords"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "To power the rust-quantum project, this library provides a robust `Cpx` type, specifically optimized for the intensive complex number multiplications required for quantum gate applications and tensor product operations. It supports various coordinate representations to maximize performance."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/enjuichang123/cpx-coords.git"
-documentation = "https://docs.rs/cpx-coords/latest/cpx_coords/"
+documentation = "https://docs.rs/cpx-coords/latest/cpx_coords/index.html"
 readme = "README.md"
 keywords = ['complex-number','coordinates']
 categories = ["data-structures", "science"]

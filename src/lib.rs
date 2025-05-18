@@ -14,7 +14,7 @@ pub const ZERO: Cpx = Cpx::Zero {};
 pub const ONE: Cpx = Cpx::One {};
 /// Represents the complex number negative one.
 pub const NEG_ONE: Cpx = Cpx::NegOne {};
-/// Represents the imaginary unit 'j'.
+/// Represents the imaginary unit \(j = \sqrt{-1} \).
 pub const J: Cpx = Cpx::J {};
 /// Represents the negative imaginary unit '-j'.
 pub const NEG_J: Cpx = Cpx::NegJ {};
@@ -46,20 +46,21 @@ pub enum Cpx {
     Real { re: f32 },
     /// Represents a purely imaginary number (im * j).
     Imag { im: f32 },
-    /// Represents a complex number with a radius of 1 and a phase angle (ph) in the interval (-π, π].
+    /// Represents a complex number with radius 1 and phase angle \(\phi \in (-\pi, \pi] \).
     Phase { ph: f32 },
     /// Represents a complex number in Cartesian coordinates (re + j * im).
     Ccs { re: f32, im: f32 },
-    /// Represents a complex number in logarithmic form (exp(re + j * im)).
+    /// Represents a complex number in logarithmic form: \(\ln(z) = \text{re} + j \cdot \text{im} \),
+    /// such that \(z = e^{\text{re} + j \cdot \text{im}} \).
     Ln { re: f32, im: f32 },
-    /// Represents a complex number in polar coordinates (rad * exp(j * ph)).
+    /// Represents a complex number in polar coordinates: \( \text{rad} \cdot e^{j \cdot \text{ph}} \).
     PL { rad: f32, ph: f32 },
 }
 
 /// Enum representing error types for complex number operations.
 #[derive(Debug, PartialEq)]
 pub enum CpxError {
-    /// Error indicating division by zero.
+    /// Occurs when attempting to divide by zero.
     DivisionByZero,
     // Additional error types can be added as needed.
 }
@@ -131,7 +132,8 @@ impl PartialEq for Cpx {
 impl Eq for Cpx {}
 
 impl Cpx {
-    /// Regularize the complex number to a standard representation, handling edge cases and potential floating-point inaccuracies.
+    /// Returns a canonicalized form of the complex number, reducing floating-point errors and mapping
+    /// close values to standard representations (e.g., 0, 1, -1, j, -j).
     pub fn regularize(&self) -> Self {
         let threshold: f32 = 1e-6;
         match *self {
@@ -462,6 +464,22 @@ impl Cpx {
             }
             .regularize()),
         }
+    }
+    /// Raises the complex number to an integer power using polar form.
+    ///
+    /// Computes `r^n * e^(i * n * θ)` by raising the magnitude to `n` and scaling the phase.
+    /// Returns the regularized result.
+    pub fn powi(self, n: i32) -> Self {
+        if n == 0 {
+            return ONE; // assuming Cpx::ONE exists as 1 + 0i
+        }
+        let new_rad = self.rad().powi(n);
+        let new_ph = self.ph() * (n as f32);
+        Cpx::PL {
+            rad: new_rad,
+            ph: new_ph,
+        }
+        .regularize()
     }
 }
 

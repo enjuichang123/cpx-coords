@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-cpx-coords = "0.1.0" # Replace with the latest version
+cpx-coords = "0.1.3" # Replace with the latest version
 ```
 
 # Features

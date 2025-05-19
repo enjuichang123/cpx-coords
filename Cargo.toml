@@ -1,7 +1,7 @@
 [package]
 authors = ["En-Jui Chang"]
 name = "cpx-coords"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "To power the rust-quantum project, this library provides a robust `Cpx` type, specifically optimized for the intensive complex number multiplications required for quantum gate applications and tensor product operations. It supports various coordinate representations to maximize performance."
 license = "MIT OR Apache-2.0"

@@ -95,19 +95,25 @@ impl Neg for Cpx {
             Cpx::NegJ {} => Cpx::J {},
             Cpx::Real { re } => Cpx::Real { re: -re },
             Cpx::Imag { im } => Cpx::Imag { im: -im },
-            Cpx::Phase { ph } => Cpx::Phase { ph: ph + PI }.regularize(),
+            Cpx::Phase { ph } => Cpx::Phase {
+                ph: Cpx::branch_cut(ph + PI),
+            },
             Cpx::Ccs { re, im } => Cpx::Ccs { re: -re, im: -im },
-            Cpx::Ln { re, im } => Cpx::Ln { re, im: im + PI }.regularize(),
-            Cpx::PL { rad, ph } => Cpx::PL { rad, ph: ph + PI }.regularize(),
+            Cpx::Ln { re, im } => Cpx::Ln {
+                re,
+                im: Cpx::branch_cut(im + PI),
+            },
+            Cpx::PL { rad, ph } => Cpx::PL {
+                rad,
+                ph: Cpx::branch_cut(ph + PI),
+            },
         }
     }
 }
 
 impl PartialEq for Cpx {
     fn eq(&self, other: &Self) -> bool {
-        let s = self.regularize();
-        let o = other.regularize();
-        match (s, o) {
+        match (self.regularize(), other.regularize()) {
             (Cpx::Zero {}, Cpx::Zero {}) => true,
             (Cpx::One {}, Cpx::One {}) => true,
             (Cpx::NegOne {}, Cpx::NegOne {}) => true,
@@ -132,142 +138,141 @@ impl PartialEq for Cpx {
 impl Eq for Cpx {}
 
 impl Cpx {
+    /// Wraps a phase angle into the (-π, π] range.
+    fn branch_cut(ph: f32) -> f32 {
+        let wrapped = (ph + PI).rem_euclid(TAU) - PI;
+        if wrapped <= -PI {
+            wrapped + TAU
+        } else {
+            wrapped
+        }
+    }
+
     /// Returns a canonicalized form of the complex number, reducing floating-point errors and mapping
     /// close values to standard representations (e.g., 0, 1, -1, j, -j).
-    pub fn regularize(&self) -> Self {
+    pub fn regularize(self) -> Self {
         let threshold: f32 = 1e-6;
-        match *self {
+        match self {
             Cpx::Zero {} => Cpx::Zero {},
             Cpx::One {} => Cpx::One {},
             Cpx::NegOne {} => Cpx::NegOne {},
             Cpx::J {} => Cpx::J {},
             Cpx::NegJ {} => Cpx::NegJ {},
             Cpx::Real { re } => {
-                if re.abs() <= threshold {
+                if approx_eq(re, 0.0, threshold) {
                     Cpx::Zero {}
-                } else if (re - 1.0).abs() <= threshold {
+                } else if approx_eq(re, 1.0, threshold) {
                     Cpx::One {}
-                } else if (re + 1.0).abs() <= threshold {
+                } else if approx_eq(re, -1.0, threshold) {
                     Cpx::NegOne {}
                 } else {
                     Cpx::Real { re }
                 }
             }
             Cpx::Imag { im } => {
-                if im.abs() <= threshold {
+                if approx_eq(im, 0.0, threshold) {
                     Cpx::Zero {}
-                } else if (im - 1.0).abs() <= threshold {
+                } else if approx_eq(im, 1.0, threshold) {
                     Cpx::J {}
-                } else if (im + 1.0).abs() <= threshold {
+                } else if approx_eq(im, -1.0, threshold) {
                     Cpx::NegJ {}
                 } else {
                     Cpx::Imag { im }
                 }
             }
-            Cpx::Phase { mut ph } => {
-                while ph <= -PI {
-                    ph += TAU;
-                }
-                while ph > PI {
-                    ph -= TAU;
-                }
-                if ph.abs() <= threshold {
+            Cpx::Phase { ph } => {
+                let new_ph = Cpx::branch_cut(ph);
+                if approx_eq(new_ph, 0.0, threshold) {
                     Cpx::One {}
-                } else if (ph - FRAC_PI_2).abs() <= threshold {
+                } else if approx_eq(new_ph, FRAC_PI_2, threshold) {
                     Cpx::J {}
-                } else if (ph - PI).abs() <= threshold {
+                } else if approx_eq(new_ph, PI, threshold) {
                     Cpx::NegOne {}
-                } else if (ph + FRAC_PI_2).abs() <= threshold {
+                } else if approx_eq(new_ph, -FRAC_PI_2, threshold) {
                     Cpx::NegJ {}
                 } else {
-                    Cpx::Phase { ph } // Already a phase, no changes needed
+                    Cpx::Phase { ph: new_ph }
                 }
             }
             Cpx::Ccs { re, im } => {
                 let mag = re.hypot(im);
-                if mag <= threshold {
+                let re_is_zero = approx_eq(re, 0.0, threshold);
+                let im_is_zero = approx_eq(im, 0.0, threshold);
+
+                if approx_eq(mag, 0.0, threshold) {
                     Cpx::Zero {}
-                } else if (re - 1.0).abs() <= threshold && im.abs() <= threshold {
+                } else if approx_eq(re, 1.0, threshold) && im_is_zero {
                     Cpx::One {}
-                } else if (re + 1.0).abs() <= threshold && im.abs() <= threshold {
+                } else if approx_eq(re, -1.0, threshold) && im_is_zero {
                     Cpx::NegOne {}
-                } else if re.abs() <= threshold && (im - 1.0).abs() <= threshold {
+                } else if re_is_zero && approx_eq(im, 1.0, threshold) {
                     Cpx::J {}
-                } else if re.abs() <= threshold && (im + 1.0).abs() <= threshold {
+                } else if re_is_zero && approx_eq(im, -1.0, threshold) {
                     Cpx::NegJ {}
-                } else if im.abs() <= threshold {
+                } else if im_is_zero {
                     Cpx::Real { re }
-                } else if re.abs() <= threshold {
+                } else if re_is_zero {
                     Cpx::Imag { im }
-                } else if (mag - 1.0).abs() <= threshold {
+                } else if approx_eq(mag, 1.0, threshold) {
                     let phase = im.atan2(re);
                     Cpx::Phase { ph: phase }
                 } else {
                     Cpx::Ccs { re, im }
                 }
             }
-            Cpx::Ln { re, mut im } => {
-                while im <= -PI {
-                    im += TAU;
-                }
-                while im > PI {
-                    im -= TAU;
-                }
-                if re <= threshold.ln() {
+            Cpx::Ln { re, im } => {
+                let new_im = Cpx::branch_cut(im);
+                let re_is_zero = approx_eq(re, 0.0, threshold);
+
+                if re < threshold.ln() {
                     Cpx::Zero {}
-                } else if re.abs() <= threshold && im.abs() <= threshold {
-                    Cpx::One {}
-                } else if re.abs() <= threshold && (im - FRAC_PI_2).abs() <= threshold {
-                    Cpx::J {}
-                } else if re.abs() <= threshold && (im - PI).abs() <= threshold {
-                    Cpx::NegOne {}
-                } else if re.abs() <= threshold && (im + FRAC_PI_2).abs() <= threshold {
-                    Cpx::NegJ {}
-                } else if re.abs() <= threshold {
-                    Cpx::Phase { ph: im }
-                } else if im.abs() <= threshold {
+                } else if re_is_zero {
+                    match new_im {
+                        x if approx_eq(x, 0.0, threshold) => Cpx::One {},
+                        x if approx_eq(x, FRAC_PI_2, threshold) => Cpx::J {},
+                        x if approx_eq(x, -FRAC_PI_2, threshold) => Cpx::NegJ {},
+                        x if approx_eq(x, PI, threshold) => Cpx::NegOne {},
+                        _ => Cpx::Phase { ph: new_im },
+                    }
+                } else if approx_eq(new_im, 0.0, threshold) {
                     Cpx::Real { re: re.exp() }
-                } else if (im - PI).abs() <= threshold {
+                } else if approx_eq(new_im, PI, threshold) {
                     Cpx::Real { re: -re.exp() }
-                } else if (im - FRAC_PI_2).abs() <= threshold {
+                } else if approx_eq(new_im, FRAC_PI_2, threshold) {
                     Cpx::Imag { im: re.exp() }
-                } else if (im + FRAC_PI_2).abs() <= threshold {
+                } else if approx_eq(new_im, -FRAC_PI_2, threshold) {
                     Cpx::Imag { im: -re.exp() }
                 } else {
-                    Cpx::Ln { re, im }
+                    Cpx::Ln { re, im: new_im }
                 }
             }
-            Cpx::PL { rad, mut ph } => {
-                while ph <= -PI {
-                    ph += TAU;
-                }
+            Cpx::PL { rad, ph } => {
+                let new_ph = Cpx::branch_cut(ph);
+                let rad_is_zero = approx_eq(rad, 0.0, threshold);
+                let rad_is_one = approx_eq(rad, 1.0, threshold);
 
-                while ph > PI {
-                    ph -= TAU;
-                }
-
-                if rad <= threshold {
+                if rad_is_zero {
                     Cpx::Zero {}
-                } else if (rad - 1.0).abs() <= threshold && ph.abs() <= threshold {
+                } else if rad_is_one && approx_eq(new_ph, 0.0, threshold) {
                     Cpx::One {}
-                } else if (rad - 1.0).abs() <= threshold && (ph - FRAC_PI_2).abs() <= threshold {
+                } else if rad_is_one && approx_eq(new_ph, FRAC_PI_2, threshold) {
                     Cpx::J {}
-                } else if (rad - 1.0).abs() <= threshold && (ph - PI).abs() <= threshold {
+                } else if rad_is_one && approx_eq(new_ph, PI, threshold) {
                     Cpx::NegOne {}
-                } else if (rad - 1.0).abs() <= threshold && (ph + FRAC_PI_2).abs() <= threshold {
+                } else if rad_is_one && approx_eq(new_ph, -FRAC_PI_2, threshold) {
                     Cpx::NegJ {}
-                } else if (rad - 1.0).abs() <= threshold {
-                    Cpx::Phase { ph }
-                } else if ph.abs() <= threshold {
+                } else if rad_is_one {
+                    Cpx::Phase { ph: new_ph }
+                } else if approx_eq(new_ph, 0.0, threshold) {
                     Cpx::Real { re: rad }
-                } else if (ph - PI).abs() <= threshold {
+                } else if approx_eq(new_ph, PI, threshold) {
                     Cpx::Real { re: -rad }
-                } else if (ph - FRAC_PI_2).abs() <= threshold {
+                } else if approx_eq(new_ph, FRAC_PI_2, threshold) {
                     Cpx::Imag { im: rad }
-                } else if (ph + FRAC_PI_2).abs() <= threshold {
+                } else if approx_eq(new_ph, -FRAC_PI_2, threshold) {
                     Cpx::Imag { im: -rad }
                 } else {
-                    Cpx::PL { rad, ph }
+                    Cpx::PL { rad, ph: new_ph }
                 }
             }
         }
@@ -275,34 +280,41 @@ impl Cpx {
 
     /// Returns the complex conjugate of the complex number.
     pub fn conj(&self) -> Self {
-        let s = self.regularize();
-        match s {
+        match self {
             Cpx::Zero {} => Cpx::Zero {},
             Cpx::One {} => Cpx::One {},
             Cpx::NegOne {} => Cpx::NegOne {},
             Cpx::J {} => Cpx::NegJ {},
             Cpx::NegJ {} => Cpx::J {},
-            Cpx::Real { re } => Cpx::Real { re },
+            Cpx::Real { re } => Cpx::Real { re: *re },
             Cpx::Imag { im } => Cpx::Imag { im: -im },
-            Cpx::Phase { ph } => Cpx::Phase { ph: -ph }.regularize(),
-            Cpx::Ccs { re, im } => Cpx::Ccs { re, im: -im },
-            Cpx::Ln { re, im } => Cpx::Ln { re, im: -im }.regularize(),
-            Cpx::PL { rad, ph } => Cpx::PL { rad, ph: -ph }.regularize(),
+            Cpx::Phase { ph } => Cpx::Phase {
+                ph: Cpx::branch_cut(-ph),
+            },
+            Cpx::Ccs { re, im } => Cpx::Ccs { re: *re, im: -im },
+            Cpx::Ln { re, im } => Cpx::Ln {
+                re: *re,
+                im: Cpx::branch_cut(-im),
+            },
+            Cpx::PL { rad, ph } => Cpx::PL {
+                rad: *rad,
+                ph: Cpx::branch_cut(-ph),
+            },
         }
     }
 
     /// Returns the real part of the complex number as f32.
     pub fn re(&self) -> f32 {
-        match *self {
+        match self {
             Cpx::Zero {} => 0.0,
             Cpx::One {} => 1.0,
             Cpx::NegOne {} => -1.0,
             Cpx::J {} => 0.0,
             Cpx::NegJ {} => 0.0,
-            Cpx::Real { re } => re,
+            Cpx::Real { re } => *re,
             Cpx::Imag { .. } => 0.0,
             Cpx::Phase { ph } => ph.cos(),
-            Cpx::Ccs { re, .. } => re,
+            Cpx::Ccs { re, .. } => *re,
             Cpx::Ln { re, im } => re.exp() * im.cos(),
             Cpx::PL { rad, ph } => rad * ph.cos(),
         }
@@ -310,16 +322,16 @@ impl Cpx {
 
     /// Returns the imaginary part of the complex number as `f32`.
     pub fn im(&self) -> f32 {
-        match *self {
+        match self {
             Cpx::Zero {} => 0.0,
             Cpx::One {} => 0.0,
             Cpx::NegOne {} => 0.0,
             Cpx::J {} => 1.0,
             Cpx::NegJ {} => -1.0,
             Cpx::Real { .. } => 0.0,
-            Cpx::Imag { im } => im,
+            Cpx::Imag { im } => *im,
             Cpx::Phase { ph } => ph.sin(),
-            Cpx::Ccs { im, .. } => im,
+            Cpx::Ccs { im, .. } => *im,
             Cpx::Ln { re, im } => re.exp() * im.sin(),
             Cpx::PL { rad, ph } => rad * ph.sin(),
         }
@@ -327,7 +339,7 @@ impl Cpx {
 
     /// Returns the radius (magnitude) of the complex number as `f32`.
     pub fn rad(&self) -> f32 {
-        match *self {
+        match self {
             Cpx::Zero {} => 0.0,
             Cpx::One {} => 1.0,
             Cpx::NegOne {} => 1.0,
@@ -336,15 +348,15 @@ impl Cpx {
             Cpx::Real { re } => re.abs(),
             Cpx::Imag { im } => im.abs(),
             Cpx::Phase { .. } => 1.0,
-            Cpx::Ccs { re, im } => re.hypot(im),
+            Cpx::Ccs { re, im } => re.hypot(*im),
             Cpx::Ln { re, .. } => re.exp(),
-            Cpx::PL { rad, .. } => rad,
+            Cpx::PL { rad, .. } => *rad,
         }
     }
 
     /// Returns the phase angle of the complex number in the interval (-π, π] as `f32`.
     pub fn ph(&self) -> f32 {
-        match *self {
+        match self {
             Cpx::Zero {} => 0.0,
             Cpx::One {} => 0.0,
             Cpx::NegOne {} => PI,
@@ -352,10 +364,10 @@ impl Cpx {
             Cpx::NegJ {} => -FRAC_PI_2,
             Cpx::Real { .. } => 0.0,
             Cpx::Imag { .. } => FRAC_PI_2,
-            Cpx::Phase { ph } => ph,
-            Cpx::Ln { im, .. } => im,
-            Cpx::PL { ph, .. } => ph,
-            Cpx::Ccs { re, im } => im.atan2(re),
+            Cpx::Phase { ph } => Cpx::branch_cut(*ph),
+            Cpx::Ln { im, .. } => Cpx::branch_cut(*im),
+            Cpx::PL { ph, .. } => Cpx::branch_cut(*ph),
+            Cpx::Ccs { re, im } => im.atan2(*re),
         }
     }
 
@@ -366,21 +378,21 @@ impl Cpx {
 
     /// Returns the square root of the complex number.
     pub fn sqrt(&self) -> Self {
-        match *self {
+        match self {
             Cpx::Zero {} => Cpx::Zero {},
             Cpx::One {} => Cpx::One {},
             Cpx::NegOne {} => Cpx::J {},
             Cpx::J {} => Cpx::Phase { ph: FRAC_PI_4 },
             Cpx::NegJ {} => Cpx::Phase { ph: -FRAC_PI_4 },
             Cpx::Real { re } => {
-                if re >= 0.0 {
+                if *re >= 0.0 {
                     Cpx::Real { re: re.sqrt() }
                 } else {
                     Cpx::Imag { im: (-re).sqrt() }
                 }
             }
             Cpx::Imag { im } => {
-                if im >= 0.0 {
+                if *im >= 0.0 {
                     Cpx::PL {
                         rad: im.abs(),
                         ph: FRAC_PI_4,
@@ -392,45 +404,49 @@ impl Cpx {
                     }
                 }
             }
-            Cpx::Phase { ph } => Cpx::Phase { ph: ph / 2.0 }.regularize(),
-            Cpx::Ccs { re, im } => Cpx::Ccs { re, im: -im },
+            Cpx::Phase { ph } => Cpx::Phase { ph: ph / 2.0 },
+            Cpx::Ccs { re, im } => Cpx::Ccs { re: *re, im: -im },
             Cpx::Ln { re, im } => Cpx::Ln {
                 re: re / 2.0,
                 im: im / 2.0,
-            }
-            .regularize(),
+            },
             Cpx::PL { rad, ph } => Cpx::PL {
                 rad: rad.sqrt(),
                 ph: ph / 2.0,
-            }
-            .regularize(),
+            },
         }
     }
 
     /// Returns the exponential of the complex number.
     pub fn exp(&self) -> Self {
-        match *self {
+        match self {
             Cpx::Zero {} => Cpx::One {},
             Cpx::One {} => Cpx::Real { re: E },
             Cpx::NegOne {} => Cpx::Real { re: 1.0 / E },
             Cpx::J {} => Cpx::Phase { ph: 1.0 },
             Cpx::NegJ {} => Cpx::Phase { ph: -1.0 },
             Cpx::Real { re } => Cpx::Real { re: re.exp() },
-            Cpx::Imag { im } => Cpx::Phase { ph: im }.regularize(),
+            Cpx::Imag { im } => Cpx::Phase {
+                ph: Cpx::branch_cut(*im),
+            }
+            .regularize(),
             Cpx::Phase { ph } => Cpx::Ln {
                 re: ph.cos(),
                 im: ph.sin(),
             }
             .regularize(),
-            Cpx::Ccs { re, im } => Cpx::Ln { re, im }.regularize(),
+            Cpx::Ccs { re, im } => Cpx::Ln {
+                re: *re,
+                im: Cpx::branch_cut(*im),
+            },
             Cpx::Ln { re, im } => Cpx::Ln {
                 re: re.exp() * im.cos(),
-                im: re.exp() * im.sin(),
+                im: Cpx::branch_cut(re.exp() * im.sin()),
             }
             .regularize(),
             Cpx::PL { rad, ph } => Cpx::Ln {
                 re: rad * ph.cos(),
-                im: rad * ph.sin(),
+                im: Cpx::branch_cut(rad * ph.sin()),
             }
             .regularize(),
         }
@@ -443,7 +459,7 @@ impl Cpx {
 
     /// Returns the inverse (reciprocal) of the complex number.
     pub fn inv(&self) -> Result<Self, CpxError> {
-        match *self {
+        match self {
             Cpx::Zero {} => Err(CpxError::DivisionByZero),
             Cpx::One {} => Ok(Cpx::One {}),
             Cpx::NegOne {} => Ok(Cpx::NegOne {}),
@@ -451,18 +467,21 @@ impl Cpx {
             Cpx::NegJ {} => Ok(Cpx::J {}),
             Cpx::Ccs { .. } => Ok(Cpx::PL {
                 rad: 1.0 / self.rad(),
-                ph: -self.ph(),
-            }
-            .regularize()),
+                ph: Cpx::branch_cut(-self.ph()),
+            }),
             Cpx::Real { re } => Ok(Cpx::Real { re: 1.0 / re }),
             Cpx::Imag { im } => Ok(Cpx::Imag { im: -1.0 / im }),
-            Cpx::Phase { ph } => Ok(Cpx::Phase { ph: -ph }.regularize()),
-            Cpx::Ln { re, im } => Ok(Cpx::Ln { re: -re, im: -im }.regularize()),
+            Cpx::Phase { ph } => Ok(Cpx::Phase {
+                ph: Cpx::branch_cut(-ph),
+            }),
+            Cpx::Ln { re, im } => Ok(Cpx::Ln {
+                re: -re,
+                im: Cpx::branch_cut(-im),
+            }),
             Cpx::PL { rad, ph } => Ok(Cpx::PL {
                 rad: 1.0 / rad,
-                ph: -ph,
-            }
-            .regularize()),
+                ph: Cpx::branch_cut(-ph),
+            }),
         }
     }
     /// Raises the complex number to an integer power using polar form.
@@ -471,15 +490,14 @@ impl Cpx {
     /// Returns the regularized result.
     pub fn powi(self, n: i32) -> Self {
         if n == 0 {
-            return ONE; // assuming Cpx::ONE exists as 1 + 0i
+            return ONE;
         }
         let new_rad = self.rad().powi(n);
-        let new_ph = self.ph() * (n as f32);
+        let new_ph = Cpx::branch_cut(self.ph() * (n as f32));
         Cpx::PL {
             rad: new_rad,
             ph: new_ph,
         }
-        .regularize()
     }
 }
 
@@ -723,7 +741,7 @@ impl Div for Cpx {
     type Output = Self;
     fn div(self, other: Self) -> Self {
         let new_rad = self.rad() / other.rad();
-        let new_phase = self.ph() - other.ph();
+        let new_phase = Cpx::branch_cut(self.ph() - other.ph());
         Cpx::PL {
             rad: new_rad,
             ph: new_phase,
@@ -803,6 +821,19 @@ impl Div<Cpx> for f32 {
     fn div(self, other: Cpx) -> Cpx {
         Cpx::Real { re: self } / other
     }
+}
+
+/// Approximately checks whether two `f32` numbers are equal within a given epsilon tolerance.
+///
+/// # Arguments
+/// * `a` - First floating-point number.
+/// * `b` - Second floating-point number.
+/// * `eps` - Maximum allowed difference to consider `a` and `b` approximately equal.
+///
+/// # Returns
+/// * `true` if the absolute difference between `a` and `b` is less than or equal to `eps`, otherwise `false`.
+fn approx_eq(a: f32, b: f32, eps: f32) -> bool {
+    (a - b).abs() <= eps
 }
 
 #[cfg(test)]

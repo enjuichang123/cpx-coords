@@ -28,12 +28,12 @@ This library uses the following coordinate representations for complex numbers:
 -   `NegOne {}`: Represents the negation of `One` (-1).
 -   `J {}`: Represents the imaginary unit (j), a square root of -1.
 -   `NegJ {}`: Represents the negation of `J` (-j).
--   `Real { re: f32 }`: Represents a real number (re).
--   `Imag { im: f32 }`: Represents a purely imaginary number (im * j).
--   `Phase { ph: f32 }`: Represents a complex number with a radius of 1 and a phase angle (ph) in the interval (-π, π].
--   `Ccs { re: f32, im: f32 }`: Represents a complex number in Cartesian coordinates (re + j * im).
--   `Ln { re: f32, im: f32 }`: Represents a complex number in logarithmic form (exp(re + j * im)).
--   `PL { rad: f32, ph: f32 }`: Represents a complex number in polar coordinates (rad * exp(j * ph)).
+-   `Real { re: f32 or f64 }`: Represents a real number (re).
+-   `Imag { im: f32 or f64 }`: Represents a purely imaginary number (im * j).
+-   `Phase { ph: f32 or f64 }`: Represents a complex number with a radius of 1 and a phase angle (ph) in the interval (-π, π].
+-   `Ccs { re: f32 or f64, im: f32 or f64 }`: Represents a complex number in Cartesian coordinates (re + j * im).
+-   `Ln { re: f32 or f64, im: f32 or f64 }`: Represents a complex number in logarithmic form (exp (re + j * im)).
+-   `PL { rad: f32 or f64, ph: f32 or f64 }`: Represents a complex number in polar coordinates (rad * exp(j * ph)).
 
 ## License
 

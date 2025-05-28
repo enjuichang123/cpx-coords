@@ -4,19 +4,19 @@ To power the rust-quantum project, this library provides a robust `Cpx` type, sp
 
 ## Usage
 
-Add this to your `Cargo.toml`:
+Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-cpx-coords = "0.1.3" # Replace with the latest version
+cpx-coords = "0.1.4"
 ```
 
 # Features
 
 - Multiple Coordinate Representations: To optimize performance, particularly for multiplication, this library supports logarithmic coordinates. Multiplication in logarithmic form reduces to addition, which is faster than Cartesian multiplication. Additionally, common-case optimizations further improve time complexity.
 - Regularization: Implements a `regularize()` method to normalize complex numbers, ensuring consistent representations and handling numerical edge cases.
-- Precision: Uses f32 for floating-point precision.
-- Comprehensive Operations: Implements standard arithmetic operations (addition, subtraction, multiplication, division), negation, conjugation, square root, exponentiation, and more.
+- Precision: Uses f32 or f64 for floating-point precision.
+- Comprehensive Operations: Implements standard arithmetic operations (addition, subtraction, multiplication, division), negation, conjugation, i-th root, exponentiation, logarithm, powi, powf, powc and more.
 - Constants: Provides a suite of predefined constants for common complex numbers.
 
 # Coordinate Representations

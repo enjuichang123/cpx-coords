@@ -4,36 +4,23 @@ To power the rust-quantum project, this library provides a robust `Cpx` type, sp
 
 ## Usage
 
-Add the following to your `Cargo.toml`:
+Add the following to your `Cargo.toml` (to the latest version):
 
 ```toml
 [dependencies]
-cpx-coords = "0.1.4"
+cpx-coords = "0.1.5"
 ```
 
 # Features
 
 - Multiple Coordinate Representations: To optimize performance, particularly for multiplication, this library supports logarithmic coordinates. Multiplication in logarithmic form reduces to addition, which is faster than Cartesian multiplication. Additionally, common-case optimizations further improve time complexity.
-- Regularization: Implements a `regularize()` method to normalize complex numbers, ensuring consistent representations and handling numerical edge cases.
 - Precision: Uses f32 or f64 for floating-point precision.
-- Comprehensive Operations: Implements standard arithmetic operations (addition, subtraction, multiplication, division), negation, conjugation, i-th root, exponentiation, logarithm, powi, powf, powc and more.
-- Constants: Provides a suite of predefined constants for common complex numbers.
+- It can be a key of BTreeMap, HashMap and so on. Sometimes, we want to represent a superposition state as a map of (separable_state,cpx_value). Here, a separable_state use CpxKey can be treated as a key of the desired map.
 
-# Coordinate Representations
+# Future direction of development
 
-This library uses the following coordinate representations for complex numbers:
-
--   `Zero {}`: Represents the additive identity (0).
--   `One {}`: Represents the multiplicative identity (1).
--   `NegOne {}`: Represents the negation of `One` (-1).
--   `J {}`: Represents the imaginary unit (j), a square root of -1.
--   `NegJ {}`: Represents the negation of `J` (-j).
--   `Real { re: f32 or f64 }`: Represents a real number (re).
--   `Imag { im: f32 or f64 }`: Represents a purely imaginary number (im * j).
--   `Phase { ph: f32 or f64 }`: Represents a complex number with a radius of 1 and a phase angle (ph) in the interval (-π, π].
--   `Ccs { re: f32 or f64, im: f32 or f64 }`: Represents a complex number in Cartesian coordinates (re + j * im).
--   `Ln { re: f32 or f64, im: f32 or f64 }`: Represents a complex number in logarithmic form (exp (re + j * im)).
--   `PL { rad: f32 or f64, ph: f32 or f64 }`: Represents a complex number in polar coordinates (rad * exp(j * ph)).
+A complex-number analog of IEEE standard of floating numbers is designing. Consider there is one sign bit, a few exp bits, and a few significant bits for a real floating number. We want to interpret the sign bit as a special case of phase bits, while the remaining exp bits and significant bits describe the radius.
+In this interpretation, we may save a few bits for a complex number in polar coordinate.
 
 ## License
 
